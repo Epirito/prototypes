@@ -1,0 +1,16 @@
+tile size: 10m
+
+COL: if 500 collisions every 160 million kilometers, then 1 collision every 30 million tiles 
+proof:
+5 collisions every 1.6 million kilometers
+10 every 3 million
+1 every 300000 kilometers
+kilometers = 100 tiles
+1 collision every 30 million tiles, Q.E.D.
+
+
+FAT: if .79 fatalities per 160 million kilometers, then 1 fatality every 20 billion tiles
+
+FATCOL: 1 fatality every 1500 collisions (COL, FAT)
+
+unused stats: 124.16 injuries for every 160 million kilometers
