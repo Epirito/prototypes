@@ -14,3 +14,9 @@ FAT: if .79 fatalities per 160 million kilometers, then 1 fatality every 20 bill
 FATCOL: 1 fatality every 1500 collisions (COL, FAT)
 
 unused stats: 124.16 injuries for every 160 million kilometers
+
+cycling speed: 6m/s
+walking speed: 2/s
+highway: 28m/s
+stroad: 14m/s
+street: 9m/s

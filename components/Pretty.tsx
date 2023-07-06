@@ -1,9 +1,14 @@
 import { Head } from "$fresh/runtime.ts";
 import { DOWN, LEFT, RIGHT, UP } from "../traffic/basic.ts";
-import { Car } from "../traffic/example.ts";
+import { Car, Pedestrian } from "../traffic/example.ts";
 
 export default function Pretty(
-  { state, background }: { state: (Car | undefined)[]; background: string[] },
+  { cars, pedestrians, crossingPedestrians, background }: {
+    cars: (Car | undefined)[];
+    background: string[];
+    pedestrians: Pedestrian[][];
+    crossingPedestrians: Pedestrian[][];
+  },
 ) {
   return (
     <div class="grid grid-cols-10 grid-flow-row gap-2 absolute">
@@ -13,30 +18,31 @@ export default function Pretty(
           href="/anim.css"
         />
       </Head>
-      {state.map((cell, i) => (
+      {cars.map((car, i) => (
         <div class="cell">
-          {cell
+          {car
             ? (
               <div
                 style={{
                   position: "relative",
                   animationDuration: ".1s",
-                  animationName: cell.direction === LEFT
+                  animationName: car.direction === LEFT
                     ? "move-left"
-                    : cell.direction === RIGHT
+                    : car.direction === RIGHT
                     ? "move-right"
-                    : cell.direction === UP
+                    : car.direction === UP
                     ? "move-up"
-                    : cell.direction === DOWN
+                    : car.direction === DOWN
                     ? "move-down"
                     : "",
                   animationIterationCount: Infinity,
                 }}
               >
-                🚗
+                {car.char}
               </div>
             )
-            : background[i]}
+            : crossingPedestrians[i][crossingPedestrians[i].length - 1]
+              ?.crossingChar ?? (pedestrians[i].length ? "." : background[i])}
         </div>
       ))}
     </div>

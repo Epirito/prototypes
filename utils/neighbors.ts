@@ -1,8 +1,6 @@
 export function orthoNeighbors(
   x: number,
   y: number,
-  width: number,
-  height: number,
 ) {
   return [
     [
@@ -21,10 +19,7 @@ export function orthoNeighbors(
       x,
       y + 1,
     ],
-  ].filter(([
-    x,
-    y,
-  ]) => x >= 0 && y >= 0 && x < width && y < height);
+  ];
 }
 export function diagNeighbors(
   x: number,

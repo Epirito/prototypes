@@ -1,23 +1,66 @@
 import { breathFirstTraversal, flowPf } from "../utils/bfs.ts";
+import { orthoNeighbors } from "../utils/neighbors.ts";
 import { randint } from "../utils/random.ts";
+import { sum } from "../utils/vector.ts";
+import { scalarMult } from "../utils/vector.ts";
 
 export interface TrafficNode {
-  to: TrafficNode[];
-  from: TrafficNode[];
-  size: number;
+  to: LandNode[];
+  from: LandNode[];
+  cost: number;
 }
-export type UnidirectionalGrid = (1 | 2 | 4 | 8 | 0)[][];
-export const goTo = (from: TrafficNode, to: TrafficNode) => {
-  from.to.push(to);
-  to.from.push(from);
+export interface PedestrianNode {
+  conns: LandNode[];
+  crossings: LandNode[];
+  cost: number;
+}
+
+export type UnidirectionalFlag = 1 | 2 | 4 | 8 | 0;
+export type DirectionsFlag = number;
+export type UnidirectionalGrid = UnidirectionalFlag[][];
+export const connectRoads = (from: LandNode, to: LandNode) => {
+  if (from.road.to.includes(to)) return;
+  from.road.to.push(to);
+  to.road.from.push(from);
   return to;
 };
-export const trafficNode = (size: number) => {
-  return { to: [], from: [], size } as TrafficNode;
+export const connectSidewalks = (a: LandNode, b: LandNode) => {
+  if (a.sidewalk.conns.includes(b)) return;
+  a.sidewalk.conns.push(b);
+  b.sidewalk.conns.push(a);
 };
-export const trafficFlowPf = flowPf<TrafficNode>(
-  (node) => node.size,
-  (node) => node.from,
+export const connectByCrossing = (a: LandNode, b: LandNode) => {
+  if (a.sidewalk.crossings.includes(b)) return;
+  a.sidewalk.crossings.push(b);
+  b.sidewalk.crossings.push(a);
+};
+export const trafficNode = (cost: number) => {
+  return {
+    to: [],
+    from: [],
+    sidewalkWith: [],
+    crossRoad: [],
+    cost,
+  } as TrafficNode;
+};
+export const pedestrianNode = (cost: number) => {
+  return {
+    conns: [],
+    crossings: [],
+    cost,
+  } as PedestrianNode;
+};
+export type LandNode = {
+  sidewalk: PedestrianNode;
+  road: TrafficNode;
+};
+export const trafficFlowPf = flowPf<LandNode>(
+  (node) => node.road.cost,
+  (node) => node.road.from,
+);
+export const pedestrianFlowPf = flowPf<LandNode>(
+  (node) => node.sidewalk.cost,
+  (node) => [...node.sidewalk.conns, ...node.sidewalk.crossings],
 );
 export const LEFT = 1;
 export const UP = 2;
@@ -25,8 +68,12 @@ export const RIGHT = 4;
 export const DOWN = 8;
 export const ALL = LEFT | UP | RIGHT | DOWN;
 const opposite = (a: number) => ((a << 2) | (a >> 2)) & ALL;
-
-export const directionFromFlag = (flag: 1 | 2 | 4 | 8 | 0) => {
+export const coordDelta = (
+  coords: Map<LandNode, [number, number]>,
+  to: LandNode,
+  from: LandNode,
+) => sum(coords.get(to)!, scalarMult(-1, coords.get(from)!));
+export const directionFromFlag = (flag: UnidirectionalFlag) => {
   switch (flag) {
     case LEFT:
       return [-1, 0];
@@ -41,7 +88,7 @@ export const directionFromFlag = (flag: 1 | 2 | 4 | 8 | 0) => {
   }
 };
 const directionGridFromUnidirectionalGrid = (
-  grid: (1 | 2 | 4 | 8 | 0)[][],
+  grid: UnidirectionalGrid,
 ) => {
   const result = grid.map((row) =>
     row.map((
@@ -64,31 +111,76 @@ const directionGridFromUnidirectionalGrid = (
 };
 
 export const networkFromDirectionGrid = (
-  grid: number[][],
-  length: number,
+  roadTo: DirectionsFlag[][],
+  tileLength: number,
 ) => {
-  const nodes = grid.map((row) => row.map(() => trafficNode(length)));
-  grid.forEach((row, y) => {
+  const nodes = roadTo.map((row) =>
+    row.map(() =>
+      ({
+        sidewalk: pedestrianNode(tileLength),
+        road: trafficNode(tileLength),
+      }) as LandNode
+    )
+  );
+  roadTo.forEach((row, y) => {
     row.forEach((cell, x) => {
       if (cell & LEFT && x > 0) {
-        goTo(nodes[y][x], nodes[y][x - 1]);
+        connectRoads(nodes[y][x], nodes[y][x - 1]);
       }
       if (cell & UP && y > 0) {
-        goTo(nodes[y][x], nodes[y - 1][x]);
+        connectRoads(nodes[y][x], nodes[y - 1][x]);
       }
       if (cell & RIGHT && x < row.length - 1) {
-        goTo(nodes[y][x], nodes[y][x + 1]);
+        connectRoads(nodes[y][x], nodes[y][x + 1]);
       }
-      if (cell & DOWN && y < grid.length - 1) {
-        goTo(nodes[y][x], nodes[y + 1][x]);
+      if (cell & DOWN && y < roadTo.length - 1) {
+        connectRoads(nodes[y][x], nodes[y + 1][x]);
       }
     });
   });
   return nodes;
 };
+export const addSidewalksToNetwork = (
+  network: LandNode[][],
+  roadOrientation: UnidirectionalGrid,
+) => {
+  network.forEach((row, y) => {
+    row.forEach((node, x) => {
+      if (roadOrientation[y][x] === 0) return;
+      const [dx, dy] = directionFromFlag(roadOrientation[y][x]);
+
+      connectSidewalks(node, network[y + dy][x + dx]);
+
+      orthoNeighbors(x, y).filter(([nx, ny]) =>
+        nx > 0 && ny > 0 && nx < network[0].length && ny < network.length
+      ).forEach(([nx, ny]) => {
+        const neighbor = network[ny][nx];
+        if (neighbor.road.to.length === 0) {
+          connectSidewalks(node, neighbor);
+        }
+      });
+    });
+  });
+  network.forEach((row, y) => {
+    row.forEach((node, x) => {
+      if (roadOrientation[y][x] === 0) return;
+      orthoNeighbors(x, y).filter(([nx, ny]) =>
+        nx > 0 && ny > 0 && nx < network[0].length && ny < network.length
+      ).forEach(([nx, ny]) => {
+        const neighbor = network[ny][nx];
+        if (
+          neighbor.road.to.length !== 0 &&
+          !neighbor.sidewalk.conns.includes(node)
+        ) {
+          connectByCrossing(node, neighbor);
+        }
+      });
+    });
+  });
+};
 
 export const networkFromUnidirectionalGrid = (
-  grid: (1 | 2 | 4 | 8 | 0)[][],
+  grid: UnidirectionalGrid,
   length: number,
 ) => {
   return networkFromDirectionGrid(
@@ -111,15 +203,16 @@ export const stringFromUnidirectionalTile = (tile: number) => {
   }
 };
 export const stringFromUnidirectionalGrid = (
-  grid: (1 | 2 | 4 | 8 | 0)[][],
+  grid: UnidirectionalGrid,
 ) => {
   return grid.map((row) => row.map(stringFromUnidirectionalTile).join("")).join(
     "\n",
   );
 };
-export const debugGridNetwork = (network: TrafficNode[][]) => {
+
+export const debugGridNetwork = <T>(network: T[][], to: (x: T) => T[]) => {
   const result = [] as string[];
-  const nodePos = new Map<TrafficNode, [number, number]>();
+  const nodePos = new Map<T, [number, number]>();
   network.forEach((row, y) => {
     row.forEach((node, x) => {
       nodePos.set(node, [x, y]);
@@ -128,7 +221,7 @@ export const debugGridNetwork = (network: TrafficNode[][]) => {
   network.forEach((row, y) => {
     const line = [] as string[];
     row.forEach((node, x) => {
-      const directions = node.to.map((to) => {
+      const directions = to(node).map((to) => {
         const [toX, toY] = nodePos.get(to)!;
         if (toX === x) {
           if (toY === y - 1) return "↑";
@@ -146,5 +239,6 @@ export const debugGridNetwork = (network: TrafficNode[][]) => {
   });
   return result.join("\n");
 };
+
 export const directionFlagFromDelta = (dx: number, dy: number) =>
   dx === 1 ? RIGHT : dx === -1 ? LEFT : dy === 1 ? DOWN : dy === -1 ? UP : 0;
