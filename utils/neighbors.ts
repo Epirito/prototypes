@@ -1,6 +1,8 @@
 export function orthoNeighbors(
   x: number,
   y: number,
+  maxWidth = Infinity,
+  maxHeight = Infinity,
 ) {
   return [
     [
@@ -19,7 +21,7 @@ export function orthoNeighbors(
       x,
       y + 1,
     ],
-  ];
+  ].filter(([x, y]) => x >= 0 && y >= 0 && x < maxWidth && y < maxHeight);
 }
 export function diagNeighbors(
   x: number,

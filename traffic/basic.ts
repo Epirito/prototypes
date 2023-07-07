@@ -1,6 +1,7 @@
 import { breathFirstTraversal, flowPf } from "../utils/bfs.ts";
 import { orthoNeighbors } from "../utils/neighbors.ts";
 import { randint } from "../utils/random.ts";
+import { dimensions } from "../utils/raw-2d-array.ts";
 import { sum } from "../utils/vector.ts";
 import { scalarMult } from "../utils/vector.ts";
 
@@ -140,22 +141,67 @@ export const networkFromDirectionGrid = (
   });
   return nodes;
 };
+export type Tile = {
+  char: string;
+  population: number;
+};
+export const house = {
+  char: "🏠",
+  population: 5,
+};
+export const apartment = {
+  char: "🏙️",
+  population: 50,
+};
+export const office = {
+  char: "🏢",
+  population: 0,
+};
+export const store = {
+  char: "🏪",
+  population: 0,
+};
+export const departmentStore = {
+  char: "🏬",
+  population: 0,
+};
+export const factory = {
+  char: "🏭",
+  population: 0,
+};
+export const water = {
+  char: "🌊",
+  population: 0,
+};
+export const railway = {
+  char: "🛤️",
+  population: 0,
+};
+export const plain = {
+  char: "🌲",
+  population: 0,
+};
+export const road = {
+  char: "🛣️",
+  population: 0,
+};
+
 export const addSidewalksToNetwork = (
   network: LandNode[][],
   roadOrientation: UnidirectionalGrid,
+  tiles: Tile[][],
 ) => {
   network.forEach((row, y) => {
     row.forEach((node, x) => {
       if (roadOrientation[y][x] === 0) return;
+      if (y === 9 && x === 0) debugger;
       const [dx, dy] = directionFromFlag(roadOrientation[y][x]);
 
       connectSidewalks(node, network[y + dy][x + dx]);
 
-      orthoNeighbors(x, y).filter(([nx, ny]) =>
-        nx > 0 && ny > 0 && nx < network[0].length && ny < network.length
-      ).forEach(([nx, ny]) => {
+      orthoNeighbors(x, y, ...dimensions(network)).forEach(([nx, ny]) => {
         const neighbor = network[ny][nx];
-        if (neighbor.road.to.length === 0) {
+        if (![railway, road].includes(tiles[ny][nx])) {
           connectSidewalks(node, neighbor);
         }
       });
@@ -169,7 +215,7 @@ export const addSidewalksToNetwork = (
       ).forEach(([nx, ny]) => {
         const neighbor = network[ny][nx];
         if (
-          neighbor.road.to.length !== 0 &&
+          [railway, road].includes(tiles[ny][nx]) &&
           !neighbor.sidewalk.conns.includes(node)
         ) {
           connectByCrossing(node, neighbor);

@@ -1,5 +1,19 @@
-import { randint } from "../utils/random.ts";
-import { DOWN, LEFT, RIGHT, UnidirectionalGrid, UP } from "./basic.ts";
+import { orthoNeighbors } from "../utils/neighbors.ts";
+import { choice, randint } from "../utils/random.ts";
+import {
+  apartment,
+  DOWN,
+  house,
+  LEFT,
+  office,
+  plain,
+  RIGHT,
+  road,
+  store,
+  Tile,
+  UnidirectionalGrid,
+  UP,
+} from "./basic.ts";
 
 export const addBlock = (
   roads: UnidirectionalGrid,
@@ -29,3 +43,23 @@ export const randomUnidirectionalGrid = (
     { length: height },
     () => Array.from({ length: width }, () => [0, 1, 2, 4, 8][randint(5)]),
   ) as UnidirectionalGrid;
+export const populatedTiles = (roads: UnidirectionalGrid) => {
+  const tiles = Array.from(
+    { length: roads.length },
+    () => Array.from({ length: roads[0].length }, () => (plain)),
+  ) as Tile[][];
+  roads.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (
+        cell === 0
+      ) {
+        if (orthoNeighbors(x, y).some(([nx, ny]) => roads[ny]?.[nx])) {
+          tiles[y][x] = choice([house, apartment, office, store]);
+        }
+      } else {
+        tiles[y][x] = road;
+      }
+    });
+  });
+  return tiles;
+};

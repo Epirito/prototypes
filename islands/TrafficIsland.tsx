@@ -1,32 +1,23 @@
-import { useEffect } from "preact/hooks";
 import { signal } from "@preact/signals";
 import {
   cars,
   crossingPedestrians,
+  goBuyFromRandom,
   grid,
-  houseSet,
   network,
   pedestrians,
   poiSet,
   runCars,
-  runCrossingPedestrians,
-  runSidewalkPedestrians,
-  spawnCar,
-  spawnPedestrian,
+  runPedestrians,
+  spawnRandomCar,
+  spawnRandomDude,
+  tiles,
 } from "../traffic/example.ts";
 import { stringFromUnidirectionalTile } from "../traffic/basic.ts";
 import Pretty from "../components/Pretty.tsx";
-const flicker = false;
-const stops = houseSet;
-const background = grid.flatMap((row, y) =>
+const background = tiles.flatMap((row, y) =>
   row.map((cell, x) =>
-    (flicker && stops.has(network[y][x]))
-      ? "🚏"
-      : poiSet.has(network[y][x])
-      ? "🏠" //"🏢"
-      : houseSet.has(network[y][x])
-      ? "🏠"
-      : stringFromUnidirectionalTile(cell)
+    grid[y][x] !== 0 ? stringFromUnidirectionalTile(grid[y][x]) : cell.char
   )
 );
 const getCars = () =>
@@ -48,12 +39,8 @@ export default function TrafficIsland() {
   const crossingPedsSig = signal(getCrossingPedestrians());
   const update = () => {
     runCars();
-    runCrossingPedestrians();
-    runSidewalkPedestrians();
-    spawnCar();
-    spawnPedestrian();
-    //spawnCar();
-    //spawnCar();
+    runPedestrians();
+    goBuyFromRandom();
     carsSig.value = getCars();
   };
   return (

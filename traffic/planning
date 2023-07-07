@@ -20,3 +20,6 @@ walking speed: 2/s
 highway: 28m/s
 stroad: 14m/s
 street: 9m/s
+
+
+to do: fix foreach mutation bug

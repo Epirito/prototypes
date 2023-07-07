@@ -7,3 +7,4 @@ export default { //to do: make this deterministic
 };
 
 export const randint = (n: number) => Math.floor(Math.random() * n);
+export const choice = (arr: any[]) => arr[randint(arr.length)];
